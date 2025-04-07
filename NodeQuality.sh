@@ -99,7 +99,14 @@ function clear_mount(){
 
     umount $work_dir/BenchOs/proc/ 2> /dev/null
     umount $work_dir/BenchOs/sys/ 2> /dev/null
-    umount -R $work_dir/BenchOs/dev/ 2> /dev/null
+    
+    # busybox-based umount doesn't support -R flag,
+    # let's perform a manual recursive unmount here.
+    for dev in $(ls $work_dir/BenchOs/dev/)
+    do
+        umount $work_dir/BenchOs/dev/$dev 2> /dev/null
+    done
+    umount $work_dir/BenchOs/dev/ 2> /dev/null
 }
 
 function load_bench_os(){
