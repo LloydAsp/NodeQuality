@@ -262,7 +262,7 @@ RAM_PLUS_SWAP="$(( TOTAL_RAM_RAW + TOTAL_SWAP_RAW ))"
 TOTAL_DISK_RAW=$(lsblk -d -n -o SIZE --bytes | awk '{sum+=$1} END {printf "%.0f\n", sum}' | numfmt --to-unit=1024)
 TOTAL_DISK=$(format_size "$TOTAL_DISK_RAW")
 echo -e "Disk       : $TOTAL_DISK"
-DISTRO=$(grep 'PRETTY_NAME' /etc/os-release | cut -d '"' -f 2 )
+DISTRO=$(grep 'PRETTY_NAME' hostinfo/os-release | cut -d '"' -f 2 )
 echo -e "Distro     : $DISTRO"
 KERNEL=$(uname -r)
 echo -e "Kernel     : $KERNEL"
