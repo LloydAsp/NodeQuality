@@ -239,7 +239,15 @@ function main(){
 
     start_ascii
 
-    ask_question
+    if [[ "$1" == "-y" ]]; then
+        _yellow_bold "'-y' flag detected. Skipping questions and using defaults."
+        run_yabs_test='y'
+        run_ip_quality_test='y'
+        run_net_quality_test='y'
+        run_net_trace_test='y'
+    else
+        ask_question
+    fi
 
     _green_bold 'Clean Up before Installation'
     pre_init
@@ -280,4 +288,4 @@ function main(){
     post_cleanup
 }
 
-main
+main "$@"
