@@ -149,4 +149,5 @@ Function_SysBench_CPU_Fast() {
 }
 
 Function_SysBench_CPU_Fast
+echo
 Function_SysBench_Memory_Fast
