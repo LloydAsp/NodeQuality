@@ -475,7 +475,7 @@ function ask_question(){
 
     echo -en "${yellow}$(L ask_hq)${reset}"
     read run_hardware_quality_test
-    run_basic_info_test=${run_hardware_quality_test:-y}
+    run_hardware_quality_test=${run_hardware_quality_test:-y}
 
     echo -en "${yellow}$(L ask_iq)${reset}"
     read run_ip_quality_test
