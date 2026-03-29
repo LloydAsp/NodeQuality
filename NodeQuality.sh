@@ -199,6 +199,7 @@ function clear_mount(){
     umount $work_dir/BenchOs/proc/ 2> /dev/null
     umount $work_dir/BenchOs/sys/ 2> /dev/null
     umount -R $work_dir/BenchOs/dev/ 2> /dev/null
+    umount "$work_dir/BenchOs/hostinfo/os-release" 2> /dev/null
 }
 
 function load_bench_os(){
@@ -216,6 +217,10 @@ function load_bench_os(){
 
     rm etc/resolv.conf 2>/dev/null
     cp /etc/resolv.conf etc/resolv.conf
+
+    mkdir hostinfo
+    touch hostinfo/os-release
+    mount --bind /etc/os-release hostinfo/os-release
 }
 
 function chroot_run(){
