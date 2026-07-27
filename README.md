@@ -14,6 +14,28 @@
 ```
 bash <(curl -sL https://run.NodeQuality.com)
 ```
+
+## GitHub 加速（镜像代理）
+当 vps 访问 GitHub 困难时，可用 `-p` / `--proxy` 参数指定一个 GitHub 镜像加速前缀，脚本会把 `github.com`、`raw.githubusercontent.com`、`objects.githubusercontent.com`、`codeload.github.com` 等域名的下载全部走该代理，第三方测试接口（`*.Check.Place`、`api.nodequality.com`）不受影响。
+
+```bash
+# 短选项
+bash NodeQuality.sh -p https://ghfast.top
+
+# 长选项（两种写法等价）
+bash NodeQuality.sh --proxy https://ghfast.top
+bash NodeQuality.sh --proxy=https://ghfast.top
+
+# 与其他参数混用
+bash NodeQuality.sh -E -4 -p https://ghfast.top
+```
+
+常用镜像前缀（任选其一，可用性因地区和网络而异）：
+- `https://ghfast.top`
+- `https://mirror.ghproxy.com`
+- `https://ghproxy.net`
+
+> 注：代理前缀末尾的 `/` 可加可不加，脚本会自动处理。该参数仅对 GitHub 资源生效，不会影响 IP/网络质量检测的真实结果。
 ## 沙箱隔离，无痕测试
 测试脚本往往需要加载很多软件和工具，符合**把各种专用工具串起来解决问题的linux哲学**。 为了减少测试过程中安装的软件和产生的临时文件占用空间，将所有测试放在**BenchOS**内。 chroot特别适合作为测试脚本的沙箱工具，因为其**不用额外安装、极致的轻量、只有文件隔离而没有网络和内存隔离**。
 
