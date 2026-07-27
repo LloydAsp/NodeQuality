@@ -2,12 +2,39 @@
 
 current_time="$(date +%Y_%m_%d_%H_%M_%S)"
 work_dir=".nodequality$current_time"
+
+# GitHub 镜像代理前缀（为空表示不使用代理）
+# 使用 -p/--proxy <url> 传入，例如：
+#   -p https://ghfast.top
+#   --proxy https://mirror.ghproxy.com
+# 设置后所有 github.com / raw.githubusercontent.com 的下载都会被加上代理前缀
+gh_proxy=""
 bench_os_url="https://github.com/LloydAsp/NodeQuality/releases/download/v0.0.2/BenchOs.tar.gz"
 raw_file_prefix="https://raw.githubusercontent.com/LloydAsp/NodeQuality/refs/heads/main"
 
 if uname -m | grep -Eq 'arm|aarch64'; then
     bench_os_url="https://github.com/LloydAsp/NodeQuality/releases/download/v0.0.2/BenchOs-arm.tar.gz"
 fi
+
+# 给 github.com / raw.githubusercontent.com / objects.githubusercontent.com
+# 这类 URL 加上镜像代理前缀；其它 URL 原样返回
+# 用法: gh_url <原 URL>
+gh_url(){
+    local url="$1"
+    # 没设置代理就不动
+    [[ -z "$gh_proxy" ]] && { echo "$url"; return; }
+    # 只对 github 相关域名生效
+    case "$url" in
+        https://github.com/*|https://raw.githubusercontent.com/*|https://objects.githubusercontent.com/*|https://codeload.github.com/*)
+            # 去掉代理末尾的斜杠，避免拼出双斜杠
+            local p="${gh_proxy%/}"
+            echo "${p}/${url}"
+            ;;
+        *)
+            echo "$url"
+            ;;
+    esac
+}
 
 header_info_filename=header_info.log
 ip_quality_filename=ip_quality.log
@@ -140,7 +167,31 @@ function _green_bold() {
 }
 
 function get_opts(){
-    while getopts "D:d:46Ee" opt; do
+    # 先解析长选项 --proxy / --help
+    local argv=()
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --proxy)
+                if [[ -z "$2" ]]; then
+                    echo "Error: --proxy 需要一个参数"
+                    exit 1
+                fi
+                gh_proxy="$2"
+                shift 2
+                ;;
+            --proxy=*)
+                gh_proxy="${1#--proxy=}"
+                shift
+                ;;
+            *)
+                argv+=("$1")
+                shift
+                ;;
+        esac
+    done
+    set -- "${argv[@]}"
+
+    while getopts "D:d:46Eep:" opt; do
         case $opt in
             4)
                 if [[ "$opt_ipv" == "-6" ]]; then
@@ -169,7 +220,10 @@ function get_opts(){
                 lang="en"
                 opt_lang="-E"
                 ;;
-            \?) 
+            p)
+                gh_proxy="$OPTARG"
+                ;;
+            \?)
                 echo "$(L err02)"
                 ;;
         esac
@@ -205,7 +259,7 @@ function load_bench_os(){
     cd $work_dir
     rm -rf BenchOs
 
-    curl "-L#o" BenchOs.tar.gz $bench_os_url
+    curl "-L#o" BenchOs.tar.gz "$(gh_url $bench_os_url)"
     tar -xzf BenchOs.tar.gz     
     cd $work_dir/BenchOs
 
@@ -224,16 +278,16 @@ function chroot_run(){
 
 function load_part(){
     # gb5-test.sh, swap part
-    . <(curl -sL "$raw_file_prefix/part/swap.sh")
+    . <(curl -sL "$(gh_url "$raw_file_prefix/part/swap.sh")")
 }
 
 function load_3rd_program(){
-    chroot_run wget https://github.com/nxtrace/NTrace-core/releases/download/v1.3.7/nexttrace_linux_amd64 -qO /usr/local/bin/nexttrace
+    chroot_run wget "$(gh_url https://github.com/nxtrace/NTrace-core/releases/download/v1.3.7/nexttrace_linux_amd64)" -qO /usr/local/bin/nexttrace
     chroot_run chmod u+x /usr/local/bin/nexttrace
 }
 
 function run_header(){
-    chroot_run bash <(curl -Ls "$raw_file_prefix/part/header.sh")
+    chroot_run bash <(curl -Ls "$(gh_url "$raw_file_prefix/part/header.sh")")
 }
 
 function detect_virt() {
