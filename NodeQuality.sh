@@ -44,6 +44,8 @@ LANG[en.run_iq]="Running IP Quality Test..."
 LANG[en.run_nq]="Running Network Quality Test..."
 LANG[en.run_bt]="Running Backroute Trace..."
 LANG[en.cleanup_after]="Clean Up after Installation"
+LANG[en.upload_fail]="Upload failed, no result link was generated."
+LANG[en.upload_saved]="The result has been saved locally. Re-upload it later with:"
 # ===== Chinese =====
 LANG[cn.err01]="错误：work_dir不包含'nodequality'！"
 LANG[cn.err02]="错误：不支持的参数！"
@@ -62,6 +64,8 @@ LANG[cn.run_iq]="正在运行 IP 质量测试..."
 LANG[cn.run_nq]="正在运行网络质量测试..."
 LANG[cn.run_bt]="正在运行回程路由追踪..."
 LANG[cn.cleanup_after]="安装后清理"
+LANG[cn.upload_fail]="上传失败，未生成结果链接。"
+LANG[cn.upload_saved]="测试结果已保存在本地，服务恢复后可用以下命令补传："
 
 function L(){
     local key="${lang}.${1}"
@@ -429,12 +433,33 @@ function run_net_trace(){
 
 uploadAPI="https://api.nodequality.com/api/v1/record"
 function upload_result(){
+    local result_zip="$work_dir/result.zip"
+    local resp_file="$work_dir/upload_response.txt"
+    local http_code i
 
-    chroot_run zip -j - "/result/*" > $work_dir/result.zip
+    chroot_run zip -j - "/result/*" > "$result_zip"
 
-    base64 $work_dir/result.zip | curl -X POST  --data-binary @- $uploadAPI
+    # retry only on network errors / 5xx; 4xx (e.g. 429 error code: 1027) won't recover soon
+    for i in 1 2 3; do
+        http_code=$(base64 "$result_zip" | curl -sS -X POST --data-binary @- -o "$resp_file" -w '%{http_code}' "$uploadAPI")
+        [[ "$http_code" == 000 || "$http_code" == 5* ]] || break
+        sleep $((i * 5))
+    done
 
+    if [[ "$http_code" == 2* ]]; then
+        cat "$resp_file"
+        echo
+        return 0
+    fi
+
+    local backup_zip
+    backup_zip="$(dirname "$work_dir")/nodequality_result_$current_time.zip"
+    cp "$result_zip" "$backup_zip"
+    _red_bold "$(L upload_fail) HTTP $http_code: $(head -c 300 "$resp_file" 2>/dev/null)"
+    _yellow "$(L upload_saved)"
+    echo "base64 '$backup_zip' | curl -X POST --data-binary @- $uploadAPI"
     echo
+    return 1
 }
 
 function post_cleanup(){
